@@ -18,15 +18,19 @@ import java.util.concurrent.*;
  * Hello world!
  */
 public class App {
-    public static void main(String[] args) throws IOException, InterruptedException, SQLException, ExecutionException, ServerAcl.AclFormatException {
+    public static void main(String[] args) throws Exception {
         Server dbServer = MainSQLServerFactory.create();
         Thread dbServerThread = new Thread(() -> {
             dbServer.start();
         });
         dbServerThread.start();
-        HttpServer server = MainHttpServerFactory.create();
+        org.eclipse.jetty.server.Server server = MainHttpServerFactory.create();
         Thread httpServerThread = new Thread(() -> {
-            server.start();
+            try {
+                server.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
         httpServerThread.start();
         Connection con = MainSQLServerFactory.connect();
@@ -51,7 +55,7 @@ public class App {
         }
 
         dbServer.stop();
-        server.stop(0);
+        server.stop();
 
         System.out.println("Server is shuted done");
 
