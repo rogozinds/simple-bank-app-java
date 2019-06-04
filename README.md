@@ -34,8 +34,7 @@ mvn test
 should use a specific type supported by your DB or store integer and fractional parts as separate fields and implement logic for arithmetic.
 2. Not much parameters verification and error messaging. If you pass a String instead of Double, the request will be just ignored.
 3. No performance/stress testing. Only test for multithreading update.
-4. RestAPI is not covered by automated testing
-Tested from browser console.
+4. RestAPI is not covered by automated testing Tested from browser console.
 You can test this from the browser by running the following JS from console:
 ```javascript
 //create 200 accounts with 100 balance
