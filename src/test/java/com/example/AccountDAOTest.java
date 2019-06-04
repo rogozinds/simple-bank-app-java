@@ -28,6 +28,7 @@ public class AccountDAOTest {
 
     static Server server;
     static Connection con;
+
     @BeforeClass
     public static void serverSetup() throws InterruptedException, SQLException, ServerAcl.AclFormatException, ExecutionException, IOException {
         server = MainSQLServerFactory.create();
@@ -35,6 +36,7 @@ public class AccountDAOTest {
 
 
     }
+
     @Before
     public void setup() throws SQLException {
         con = MainSQLServerFactory.connect();
@@ -47,6 +49,7 @@ public class AccountDAOTest {
         AccountDAOImpl dao = new AccountDAOImpl(con);
         dao.removeTable();
     }
+
     @AfterClass
     public static void cleanServer() throws SQLException {
         server.stop();
@@ -55,9 +58,9 @@ public class AccountDAOTest {
     @Test
     public void getAccounts_addThreeAccounts_returnListWithAccounts() throws SQLException {
         AccountDAOImpl dao = new AccountDAOImpl(con);
-        dao.addAccount(new Account("0",134.0));
-        dao.addAccount(new Account("0",134.0));
-        dao.addAccount(new Account("0",134.0));
+        dao.addAccount(new Account("0", 134.0));
+        dao.addAccount(new Account("0", 134.0));
+        dao.addAccount(new Account("0", 134.0));
         List<Account> accounts = dao.getAccounts();
 
         Assert.assertEquals(3, accounts.size());
@@ -67,60 +70,60 @@ public class AccountDAOTest {
     public void addAccount_retunsCreatedAccount() throws SQLException {
         AccountDAOImpl dao = new AccountDAOImpl(con);
         double balance = 134.0;
-        Account acc = new Account("0",balance);
+        Account acc = new Account("0", balance);
         acc = dao.addAccount(acc);
         Assert.assertNotNull(acc);
-        Assert.assertEquals(balance,acc.getBalance(),0.000001);
+        Assert.assertEquals(balance, acc.getBalance(), 0.000001);
     }
 
     @Test
     public void getAccountById_retunCorrectAccount() throws SQLException {
         AccountDAOImpl dao = new AccountDAOImpl(con);
         double balance = 134.0;
-        Account acc = new Account("0",balance);
+        Account acc = new Account("0", balance);
         acc = dao.addAccount(acc);
         acc = dao.getAccountById(acc.getId());
         Assert.assertNotNull(acc);
-        Assert.assertEquals(balance,acc.getBalance(),0.000001);
+        Assert.assertEquals(balance, acc.getBalance(), 0.000001);
     }
 
     @Test
     public void trasferMoneyFromAccount() throws SQLException {
         AccountDAOImpl dao = new AccountDAOImpl(con);
         double balance = 134.0;
-        Account acc1 = new Account("0",140);
-        Account acc2 = new Account("0",200);
+        Account acc1 = new Account("0", 140);
+        Account acc2 = new Account("0", 200);
         acc1 = dao.addAccount(acc1);
         acc2 = dao.addAccount(acc2);
-        dao.transferMoney(acc1,acc2,40d);
-        acc1=dao.getAccountById(acc1.getId());
-        Assert.assertEquals(100,acc1.getBalance(),0.000001);
-        acc2=dao.getAccountById(acc2.getId());
-        Assert.assertEquals(240,acc2.getBalance(),0.000001);
+        dao.transferMoney(acc1, acc2, 40d);
+        acc1 = dao.getAccountById(acc1.getId());
+        Assert.assertEquals(100, acc1.getBalance(), 0.000001);
+        acc2 = dao.getAccountById(acc2.getId());
+        Assert.assertEquals(240, acc2.getBalance(), 0.000001);
     }
 
     @Test
     public void trasferMoneyFromAccountWhenNotEnoughDoesNotChange() throws SQLException {
         AccountDAOImpl dao = new AccountDAOImpl(con);
-        Account acc1 = new Account("0",140);
-        Account acc2 = new Account("0",200);
+        Account acc1 = new Account("0", 140);
+        Account acc2 = new Account("0", 200);
         acc1 = dao.addAccount(acc1);
         acc2 = dao.addAccount(acc2);
-        dao.transferMoney(acc1,acc2,400d);
-        acc1=dao.getAccountById(acc1.getId());
-        Assert.assertEquals(140,acc1.getBalance(),0.000001);
-        acc2=dao.getAccountById(acc2.getId());
-        Assert.assertEquals(200,acc2.getBalance(),0.000001);
+        dao.transferMoney(acc1, acc2, 400d);
+        acc1 = dao.getAccountById(acc1.getId());
+        Assert.assertEquals(140, acc1.getBalance(), 0.000001);
+        acc2 = dao.getAccountById(acc2.getId());
+        Assert.assertEquals(200, acc2.getBalance(), 0.000001);
     }
 
     @Test
     public void trasferMoneyFromAccountWhenNotEnoughReturnsFalse() throws SQLException {
         AccountDAOImpl dao = new AccountDAOImpl(con);
-        Account acc1 = new Account("0",140);
-        Account acc2 = new Account("0",200);
+        Account acc1 = new Account("0", 140);
+        Account acc2 = new Account("0", 200);
         acc1 = dao.addAccount(acc1);
         acc2 = dao.addAccount(acc2);
-        Boolean isSuccessful = dao.transferMoney(acc1,acc2,400d);
+        Boolean isSuccessful = dao.transferMoney(acc1, acc2, 400d);
         Assert.assertFalse(isSuccessful);
     }
 
@@ -129,7 +132,7 @@ public class AccountDAOTest {
         //We transfer 1 from accSender with balance 21 to 20 accs with balance 0 concurrently.
         //We check accSender and all recieveing accounts has balance 1 at the end.
 
-        int nAccounts = 1;
+        int nAccounts = 20;
         AccountDAOImpl dao = new AccountDAOImpl(con);
         double balance = 21.0;
         Account accSender = dao.addAccount(new Account("0", balance));
@@ -166,8 +169,7 @@ public class AccountDAOTest {
             });
         }
         latch.await();
-        Assert.assertEquals(20.0, dao.getAccountById(accSender.getId()).getBalance(), 0.0001);
-
+        Assert.assertEquals(1.0, dao.getAccountById(accSender.getId()).getBalance(), 0.0001);
 
         for (String id : accountIds) {
             dao = new AccountDAOImpl(con);

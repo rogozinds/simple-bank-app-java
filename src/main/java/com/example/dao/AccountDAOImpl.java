@@ -106,17 +106,27 @@ public class AccountDAOImpl implements AccountDAO {
     public boolean transferMoney(Account sender, Account reciever, double amount) throws SQLException {
         try {
             con.setAutoCommit(false);
-            con.setTransactionIsolation(con.TRANSACTION_REPEATABLE_READ);
+            con.setTransactionIsolation(con.TRANSACTION_READ_COMMITTED);
             PreparedStatement stm;
             stm = con.prepareStatement("START TRANSACTION");
             stm.executeUpdate();
             String query;
-            query = String.format("select * from %s where id=%s", TABLE_NAME, sender.getId());
+            query = String.format("select * from %s where id=%s for update", TABLE_NAME, sender.getId());
             stm = con.prepareStatement(query);
             ResultSet res = stm.executeQuery();
-            Double currentBalance = 0.0;
+            Double senderBalance = 0.0;
             if (res.next()) {
-                currentBalance = res.getDouble("balance");
+                senderBalance = res.getDouble("balance");
+            } else {
+                throw new SQLException("Could not retrieve results");
+            }
+
+            query = String.format("select * from %s where id=%s", TABLE_NAME, reciever.getId());
+            stm = con.prepareStatement(query);
+            res = stm.executeQuery();
+            Double recieverBalance = 0.0;
+            if (res.next()) {
+                recieverBalance = res.getDouble("balance");
             } else {
                 throw new SQLException("Could not retrieve results");
             }
@@ -124,14 +134,15 @@ public class AccountDAOImpl implements AccountDAO {
             //We want to raise an exception or something, to explicitly show what is the problem. If there is no enough money on acc.
             // For now just close the transaction and silently return
             //
-            if (currentBalance >= amount) {
+            if (senderBalance >= amount) {
                 query = "UPDATE ACCOUNTS set balance = ? where id = ?;\n";
 
+                System.out.println(String.format("Transfer: Sender balance: %f accId: %s", senderBalance, sender.getId()));
                 stm = con.prepareStatement(query);
-                stm.setDouble(1, sender.getBalance() - amount);
+                stm.setDouble(1, senderBalance - amount);
                 stm.setInt(2, Integer.valueOf(sender.getId()));
                 stm.executeUpdate();
-                stm.setDouble(1, reciever.getBalance() + amount);
+                stm.setDouble(1, recieverBalance + amount);
                 stm.setInt(2, Integer.valueOf(reciever.getId()));
                 stm.executeUpdate();
                 stm = con.prepareStatement("COMMIT");
@@ -142,7 +153,7 @@ public class AccountDAOImpl implements AccountDAO {
                 return false;
             }
         } catch (SQLException e) {
-            System.out.println("Rollback the transcaction");
+            System.out.println("Rollback the transacction");
             con.rollback();
             return false;
         }
