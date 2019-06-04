@@ -1,14 +1,12 @@
 package com.example.dao;
 
 import com.example.model.Account;
-import org.hsqldb.jdbc.JDBCPreparedStatement;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,6 +99,21 @@ public class AccountDAOImpl implements AccountDAO {
         stm.executeUpdate(query);
     }
 
+    private double getBalanceForUpdateByID(String id) throws SQLException {
+        PreparedStatement stm;
+        String query = String.format("select * from %s where id=? for update", TABLE_NAME);
+        stm = con.prepareStatement(query);
+        stm.setInt(1, Integer.valueOf(id));
+        ResultSet res = stm.executeQuery();
+        Double balance = 0.0;
+        if (res.next()) {
+            balance = res.getDouble("balance");
+        } else {
+            throw new SQLException("Could not retrieve results");
+        }
+        return balance;
+    }
+
     @Override
     //Returns true if it was successful
     public boolean transferMoney(Account sender, Account reciever, double amount) throws SQLException {
@@ -110,39 +123,19 @@ public class AccountDAOImpl implements AccountDAO {
             PreparedStatement stm;
             stm = con.prepareStatement("START TRANSACTION");
             stm.executeUpdate();
-            String query;
-            query = String.format("select * from %s where id=%s for update", TABLE_NAME, sender.getId());
-            stm = con.prepareStatement(query);
-            ResultSet res = stm.executeQuery();
-            Double senderBalance = 0.0;
-            if (res.next()) {
-                senderBalance = res.getDouble("balance");
-            } else {
-                throw new SQLException("Could not retrieve results");
-            }
-
-            query = String.format("select * from %s where id=%s", TABLE_NAME, reciever.getId());
-            stm = con.prepareStatement(query);
-            res = stm.executeQuery();
-            Double recieverBalance = 0.0;
-            if (res.next()) {
-                recieverBalance = res.getDouble("balance");
-            } else {
-                throw new SQLException("Could not retrieve results");
-            }
+            Double senderBalance = getBalanceForUpdateByID(sender.getId());
+            Double receiverBalance = getBalanceForUpdateByID(reciever.getId());
 
             //We want to raise an exception or something, to explicitly show what is the problem. If there is no enough money on acc.
             // For now just close the transaction and silently return
             //
             if (senderBalance >= amount) {
-                query = "UPDATE ACCOUNTS set balance = ? where id = ?;\n";
-
-                System.out.println(String.format("Transfer: Sender balance: %f accId: %s", senderBalance, sender.getId()));
+                String query = "UPDATE ACCOUNTS set balance = ? where id = ?;\n";
                 stm = con.prepareStatement(query);
                 stm.setDouble(1, senderBalance - amount);
                 stm.setInt(2, Integer.valueOf(sender.getId()));
                 stm.executeUpdate();
-                stm.setDouble(1, recieverBalance + amount);
+                stm.setDouble(1, receiverBalance + amount);
                 stm.setInt(2, Integer.valueOf(reciever.getId()));
                 stm.executeUpdate();
                 stm = con.prepareStatement("COMMIT");

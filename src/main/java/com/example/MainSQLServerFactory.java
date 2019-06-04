@@ -16,13 +16,13 @@ public class MainSQLServerFactory {
     public static final String DB_NAME = "mainDB";
 
     public static Server create() throws IOException, ServerAcl.AclFormatException, SQLException, ExecutionException, InterruptedException {
-        return create("mem:accounts");
+        return create(DB_NAME);
     }
 
     public static Server create(String dbname) throws IOException, ServerAcl.AclFormatException, SQLException, ExecutionException, InterruptedException {
         Server server = new Server();
-        server.setDatabasePath(0, "mem:" + DB_NAME);
-        server.setDatabaseName(0, DB_NAME);
+        server.setDatabasePath(0, "mem:" + dbname);
+        server.setDatabaseName(0, dbname);
         server.setPort(DB_PORT);
         server.setLogWriter(null); // can use custom writer
         server.setErrWriter(null); // can use custom writer
