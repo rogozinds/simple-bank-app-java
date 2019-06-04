@@ -80,7 +80,7 @@ public class MainHandler extends AbstractHandler {
 
     private void handleAccountCreate(Request request, HttpServletResponse response) throws IOException {
         Map<String, String[]> params = request.getParameterMap();
-        String responseContent = "No account with such id";
+        String responseContent = "Something wend wrong";
         double balance = 0.0d;
         if (params.containsKey("balance")) {
             balance = Double.parseDouble(params.get("balance")[0]);
@@ -137,12 +137,10 @@ public class MainHandler extends AbstractHandler {
         Boolean wasTransferSuccessful = false;
         if (areParamsOk(params)) {
             double amount = 0.0d;
+            String senderId = params.get("sender")[0];
+            String recieverId = params.get("reciever")[0];
             try {
-                String senderId = params.get("sender")[0];
-                String recieverId = params.get("reciever")[0];
                 amount = Double.parseDouble(params.get("amount")[0]);
-
-
                 Connection con = MainSQLServerFactory.connect();
                 AccountDAOImpl accountDAO = new AccountDAOImpl(con);
                 Account sender = accountDAO.getAccountById(senderId);
@@ -155,9 +153,9 @@ public class MainHandler extends AbstractHandler {
                 System.out.println("Could not parse amount param " + params.get("amount"));
             }
             if (wasTransferSuccessful) {
-                responseContent = String.format("%f is sent from %s account to %s account", amount, params.get("sender"), params.get("reciever"));
+                responseContent = String.format("%f is sent from %s account to %s account", amount, senderId, params.get("reciever"));
             } else {
-                responseContent = String.format("Not enough money on account %s to transfer %f", params.get("sender"), amount);
+                responseContent = String.format("Not enough money on account %s to transfer %f", senderId, amount);
             }
 
         } else {

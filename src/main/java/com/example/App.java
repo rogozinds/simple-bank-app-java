@@ -37,9 +37,6 @@ public class App {
         AccountDAOImpl dao = new AccountDAOImpl(con);
         if (!dao.isTableCreated()) {
             dao.createTable();
-//            dao.addAccount(new Account("0", 134.0));
-//            dao.addAccount(new Account("0", 144.0));
-//            dao.addAccount(new Account("0", 154.0));
         }
         List<Account> accs = dao.getAccounts();
 
