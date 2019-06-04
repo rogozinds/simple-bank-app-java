@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class AccountDAOTest {
 
@@ -128,7 +129,7 @@ public class AccountDAOTest {
     }
 
     @Test
-    public void multiThreadTrasfer() throws SQLException, InterruptedException {
+    public void multiThreadTrasferFromOneAccountToOther() throws SQLException, InterruptedException {
         //We transfer 1 from accSender with balance 21 to 20 accs with balance 0 concurrently.
         //We check accSender and all recieveing accounts has balance 1 at the end.
 
@@ -177,4 +178,63 @@ public class AccountDAOTest {
             Assert.assertEquals(1.0, acc.getBalance(), 0.0001);
         }
     }
+
+    @Test
+    public void multiThreadTrasferFromOneAccountToOtherWhenNotEnough() throws SQLException, InterruptedException {
+        //We transfer 1 from accSender with balance 10 to 20 accs with balance 0 concurrently.
+        //We check at the end, the balance of sender is 0 and that 10 recieving accounts have balance 1.
+        //We can't garantee the order, as we don't use any queue.
+
+        int nAccounts = 20;
+        AccountDAOImpl dao = new AccountDAOImpl(con);
+        double balance = 10.0;
+        Account accSender = dao.addAccount(new Account("0", balance));
+
+        ConcurrentLinkedQueue<Account> accounts = new ConcurrentLinkedQueue();
+        List<String> accountIds = new ArrayList<>();
+        for (int i = 0; i < nAccounts; i++) {
+            Account accReciever = dao.addAccount(new Account("0", 0.0));
+            accounts.add(accReciever);
+            accountIds.add(accReciever.getId());
+        }
+        ExecutorService executorService = Executors.newFixedThreadPool(nAccounts);
+        CountDownLatch latch = new CountDownLatch(nAccounts);
+        for (int i = 0; i < nAccounts; i++) {
+            executorService.submit(() -> {
+                Account acc = accounts.poll();
+                Connection _con = null;
+                try {
+                    _con = MainSQLServerFactory.connect();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                if (_con != null) {
+                    AccountDAOImpl _dao = new AccountDAOImpl(_con);
+                    try {
+                        _dao.transferMoney(accSender, acc, 1.0);
+                        latch.countDown();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    throw new RuntimeException("Could not connect to db");
+                }
+            });
+        }
+        latch.await();
+        Assert.assertEquals(0.0, dao.getAccountById(accSender.getId()).getBalance(), 0.0001);
+
+        List<Account> accs = new ArrayList<>();
+        for (String id : accountIds) {
+            dao = new AccountDAOImpl(con);
+            Account acc = dao.getAccountById(id);
+            accs.add(acc);
+        }
+        int nAccountsWithBalanceOne = accs.stream().filter(a->a.getBalance()>0.0).collect(Collectors.toList()).size();
+        Assert.assertEquals(10, nAccountsWithBalanceOne);
+
+        int nAccountsWithBalanceZero = accs.stream().filter(a->a.getBalance()==0.0).collect(Collectors.toList()).size();
+        Assert.assertEquals(10, nAccountsWithBalanceZero);
+    }
+
 }

@@ -153,7 +153,7 @@ public class AccountDAOImpl implements AccountDAO {
                 return false;
             }
         } catch (SQLException e) {
-            System.out.println("Rollback the transacction");
+            System.out.println("Rollback the transaction");
             con.rollback();
             return false;
         }
