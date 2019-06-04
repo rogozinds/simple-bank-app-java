@@ -8,6 +8,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -103,39 +104,46 @@ public class AccountDAOImpl implements AccountDAO {
     @Override
     //Returns true if it was successful
     public boolean transferMoney(Account sender, Account reciever, double amount) throws SQLException {
-        con.setAutoCommit(false);
-        PreparedStatement stm;
-        stm = con.prepareStatement("START TRANSACTION");
-        stm.executeUpdate();
-        String query;
-        query = String.format("select * from %s where id=%s", TABLE_NAME, sender.getId());
-        stm = con.prepareStatement(query);
-        ResultSet res = stm.executeQuery();
-        Double currentBalance = 0.0;
-        if (res.next()) {
-            currentBalance = res.getDouble("balance");
-        } else {
-            throw new SQLException("Could not retrieve results");
-        }
-
-        //We want to raise an exception or something, to explicitly show what is the problem. If there is no enough money on acc.
-        // For now just close the transaction and silently return
-        //
-        if (currentBalance >= amount) {
-            query = "UPDATE ACCOUNTS set balance = ? where id = ?;\n";
-
+        try {
+            con.setAutoCommit(false);
+            con.setTransactionIsolation(con.TRANSACTION_REPEATABLE_READ);
+            PreparedStatement stm;
+            stm = con.prepareStatement("START TRANSACTION");
+            stm.executeUpdate();
+            String query;
+            query = String.format("select * from %s where id=%s", TABLE_NAME, sender.getId());
             stm = con.prepareStatement(query);
-            stm.setDouble(1, sender.getBalance() - amount);
-            stm.setInt(2, Integer.valueOf(sender.getId()));
-            stm.executeUpdate();
-            stm.setDouble(1, reciever.getBalance() + amount);
-            stm.setInt(2, Integer.valueOf(reciever.getId()));
-            stm.executeUpdate();
-            stm = con.prepareStatement("COMMIT");
-            stm.executeUpdate();
-            con.commit();
-        } else {
-            con.setAutoCommit(true);
+            ResultSet res = stm.executeQuery();
+            Double currentBalance = 0.0;
+            if (res.next()) {
+                currentBalance = res.getDouble("balance");
+            } else {
+                throw new SQLException("Could not retrieve results");
+            }
+
+            //We want to raise an exception or something, to explicitly show what is the problem. If there is no enough money on acc.
+            // For now just close the transaction and silently return
+            //
+            if (currentBalance >= amount) {
+                query = "UPDATE ACCOUNTS set balance = ? where id = ?;\n";
+
+                stm = con.prepareStatement(query);
+                stm.setDouble(1, sender.getBalance() - amount);
+                stm.setInt(2, Integer.valueOf(sender.getId()));
+                stm.executeUpdate();
+                stm.setDouble(1, reciever.getBalance() + amount);
+                stm.setInt(2, Integer.valueOf(reciever.getId()));
+                stm.executeUpdate();
+                stm = con.prepareStatement("COMMIT");
+                stm.executeUpdate();
+                con.commit();
+            } else {
+                con.setAutoCommit(true);
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.println("Rollback the transcaction");
+            con.rollback();
             return false;
         }
         con.setAutoCommit(true);

@@ -146,8 +146,8 @@ public class MainHandler extends AbstractHandler {
                 Connection con = MainSQLServerFactory.connect();
                 AccountDAOImpl accountDAO = new AccountDAOImpl(con);
                 Account sender = accountDAO.getAccountById(senderId);
-                Account reciver = accountDAO.getAccountById(recieverId);
-                wasTransferSuccessful = accountDAO.transferMoney(sender, reciver, amount);
+                Account reciever = accountDAO.getAccountById(recieverId);
+                wasTransferSuccessful = accountDAO.transferMoney(sender, reciever, amount);
 
             } catch (SQLException e) {
                 System.out.println("There was an exception when sending values from acc to acc " + e.getMessage());
