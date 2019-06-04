@@ -59,7 +59,8 @@ public class MainHandler extends AbstractHandler {
                 " /api/accounts - list of all available accounts with their balances and ids\n" +
                 " /api/account?id=1 - get an information about account with id equals to 1\n" +
                 " /api/account/add?balance=500 - create a new account with the balance of 500 or with balance=0 if not specified\n" +
-                " /api/account/send?sender=1&reciever=2&amount=30 -  send 30 from account with id 1 to account with id 2\n";
+                " /api/account/send?sender=1&reciever=2&amount=30 -  send 30 from account with id 1 to account with id 2\n"+
+                " /api/accounts/clean - clean all the accounts";
         writeHttpResponse(response, responseContent);
     }
 
